@@ -114,12 +114,18 @@ const ImagePage = () => {
         image.src = URL.createObjectURL(file)
   
         image.onload = () => {
-          canvas.width = image.width
-          canvas.height = image.height
+          const workingCanvas: HTMLCanvasElement = document.createElement("canvas")
+
+          const workingCanvasContext: CanvasRenderingContext2D | null = workingCanvas.getContext("2d")
+
+          if (!workingCanvasContext) return
+
+          workingCanvas.width = image.width
+          workingCanvas.height = image.height
+
+          workingCanvasContext.drawImage(image, 0, 0, workingCanvas.width, workingCanvas.height)
   
-          ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
-  
-          const imageData: ImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+          const imageData: ImageData = workingCanvasContext.getImageData(0, 0, workingCanvas.width, workingCanvas.height)
   
           const rgbaLength: number = 4
           const channelData: Float32Array = new Float32Array(imageData.data.length / rgbaLength)
@@ -156,8 +162,11 @@ const ImagePage = () => {
 
             channelData[i] = combinedNumeralsAsFloat / 255
           }
-  
-          playAudioInArray(channelData) 
+
+          workingCanvas.remove()
+
+          ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+          playAudioInArray(channelData)
         }
       }
     }
