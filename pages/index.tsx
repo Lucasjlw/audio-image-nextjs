@@ -1,23 +1,22 @@
-import { useCallback, useState, useRef, ReactHTMLElement } from "react"
+import { useCallback, useRef } from "react"
 
 const ImagePage = () => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const generators = {
-    generateImageFromAudioBuffer(decodedAudioBuffer: AudioBuffer) {
+  const generators: Object = {
+    generateImageFromAudioBuffer(decodedAudioBuffer: AudioBuffer): void {
       if (!canvasRef.current) return
-  
+
       const canvas: HTMLCanvasElement | null = canvasRef.current
-  
+
       const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d")
       if (!ctx) return
-  
+
       const channelData: Float32Array = decodedAudioBuffer.getChannelData(0)
-  
+
       const canvasWidth: number = canvas.width
       const canvasHeight: number = canvas.height
-    
+
       const imageData: ImageData = ctx.createImageData(canvasWidth, canvasHeight)
 
       normalizeDataToRange(channelData, 0, 255)
@@ -31,30 +30,30 @@ const ImagePage = () => {
         imageData.data[index + 2] = value
         imageData.data[index + 3] = 255
       }
-    
+
       ctx.putImageData(imageData, 0, 0)
-      
+
       downloadCanvasImage()
     },
 
-    generateAudioFromImage(file: File) {
+    generateAudioFromImage(file: File): void {
       if (!canvasRef.current) return
-  
+
       const canvas: HTMLCanvasElement = canvasRef.current
-      const ctx: CanvasRenderingContext2D | null  = canvas.getContext("2d")
+      const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d")
       if (!ctx) return
-  
+
       const image: HTMLImageElement = new Image()
       image.src = URL.createObjectURL(file)
-  
+
       image.onload = () => {
         canvas.width = image.width
         canvas.height = image.height
-        
+
         ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
-  
+
         const imageData: ImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-        
+
         const channelData: Float32Array = new Float32Array(imageData.data.length / 4)
 
         for (let i = 0; i < imageData.data.length; i++) {
@@ -75,7 +74,7 @@ const ImagePage = () => {
     }
   }
 
-  function normalizeDataToRange(array: Float32Array, a: number, b: number) {
+  function normalizeDataToRange(array: Float32Array, a: number, b: number): void {
     let min: number = 0
     let max: number = 0
     for (let i = 0; i < array.length; i++) {
@@ -89,7 +88,7 @@ const ImagePage = () => {
     }
   }
 
-  function downloadCanvasImage() {
+  function downloadCanvasImage(): void {
     if (!canvasRef.current) return
     const canvas = canvasRef.current
 
@@ -99,7 +98,7 @@ const ImagePage = () => {
     link.click();
   }
 
-  function playAudioInArray(array: Float32Array) {
+  function playAudioInArray(array: Float32Array): void {
     const audioContext: AudioContext = new AudioContext()
 
     const audioBuffer: AudioBuffer = audioContext.createBuffer(1, array.length, audioContext.sampleRate)
@@ -121,30 +120,30 @@ const ImagePage = () => {
     audioBufferSourceNode.start()
   }
 
-  const handleImageUpload = useCallback(async (file: File) => {
-    generators.generateAudioFromImage(file)
-  }, [])
+  const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
+    const handleImageUpload = (file: File) => {
+      generators.generateAudioFromImage(file)
+    }
 
-  const handleAudioUpload = useCallback(async (file: File) => {
-    const audioContext: AudioContext = new AudioContext()
+    const handleAudioUpload = async (file: File) => {
+      const audioContext: AudioContext = new AudioContext()
 
-    if (!audioContext) return
+      if (!audioContext) return
 
-    const arrayBuffer: ArrayBuffer = await file.arrayBuffer()
+      const arrayBuffer: ArrayBuffer = await file.arrayBuffer()
 
-    const decodedAudioBuffer: AudioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+      const decodedAudioBuffer: AudioBuffer = await audioContext.decodeAudioData(arrayBuffer)
 
-    generators.generateImageFromAudioBuffer(decodedAudioBuffer)
-  }, [])
+      generators.generateImageFromAudioBuffer(decodedAudioBuffer)
+    }
 
-  function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files?.[0]) return
     const file: File = e.target.files[0]
 
     if (file.type.includes("image")) handleImageUpload(file)
 
     else if (file.type.includes("audio")) handleAudioUpload(file)
-  }
+  }, [])
 
   return (
     <div>
