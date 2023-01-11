@@ -3,73 +3,6 @@ import { useCallback, useRef } from "react"
 const ImagePage = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const generators = {
-    generateImageFromAudioBuffer(decodedAudioBuffer: AudioBuffer): void {
-      if (!canvasRef.current) return
-
-      const canvas: HTMLCanvasElement | null = canvasRef.current
-
-      const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d")
-      if (!ctx) return
-
-      const channelData: Float32Array = decodedAudioBuffer.getChannelData(0)
-
-      const canvasWidth: number = canvas.width
-      const canvasHeight: number = canvas.height
-
-      const imageData: ImageData = ctx.createImageData(canvasWidth, canvasHeight)
-
-      normalizeDataToRange(channelData, 0, 255)
-
-      for (let i = 0; i < imageData.data.length; i++) {
-        const value: number = channelData[i]
-        const index: number = i * 4
-
-        imageData.data[index] = value
-        imageData.data[index + 1] = value
-        imageData.data[index + 2] = value
-        imageData.data[index + 3] = 255
-      }
-
-      ctx.putImageData(imageData, 0, 0)
-
-      downloadCanvasImage()
-    },
-
-    generateAudioFromImage(file: File): void {
-      if (!canvasRef.current) return
-
-      const canvas: HTMLCanvasElement = canvasRef.current
-      const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d")
-      if (!ctx) return
-
-      const image: HTMLImageElement = new Image()
-      image.src = URL.createObjectURL(file)
-
-      image.onload = () => {
-        canvas.width = image.width
-        canvas.height = image.height
-
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
-
-        const imageData: ImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-
-        const channelData: Float32Array = new Float32Array(imageData.data.length / 4)
-
-        for (let i = 0; i < imageData.data.length; i++) {
-          const index: number = i * 4
-          const value: number = imageData.data[index]
-
-          channelData[i] = value
-        }
-
-        normalizeDataToRange(channelData, -1, 1)
-
-        playAudioInArray(channelData)
-      }
-    }
-  }
-
   function normalizeDataToRange(array: Float32Array, a: number, b: number): void {
     let min: number = 0
     let max: number = 0
@@ -117,6 +50,73 @@ const ImagePage = () => {
   }
 
   const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
+    const generators = {
+      generateImageFromAudioBuffer(decodedAudioBuffer: AudioBuffer): void {
+        if (!canvasRef.current) return
+  
+        const canvas: HTMLCanvasElement | null = canvasRef.current
+  
+        const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d")
+        if (!ctx) return
+  
+        const channelData: Float32Array = decodedAudioBuffer.getChannelData(0)
+  
+        const canvasWidth: number = canvas.width
+        const canvasHeight: number = canvas.height
+  
+        const imageData: ImageData = ctx.createImageData(canvasWidth, canvasHeight)
+  
+        normalizeDataToRange(channelData, 0, 255)
+  
+        for (let i = 0; i < imageData.data.length; i++) {
+          const value: number = channelData[i]
+          const index: number = i * 4
+  
+          imageData.data[index] = value
+          imageData.data[index + 1] = value
+          imageData.data[index + 2] = value
+          imageData.data[index + 3] = 255
+        }
+  
+        ctx.putImageData(imageData, 0, 0)
+  
+        downloadCanvasImage()
+      },
+  
+      generateAudioFromImage(file: File): void {
+        if (!canvasRef.current) return
+  
+        const canvas: HTMLCanvasElement = canvasRef.current
+        const ctx: CanvasRenderingContext2D | null = canvas.getContext("2d")
+        if (!ctx) return
+  
+        const image: HTMLImageElement = new Image()
+        image.src = URL.createObjectURL(file)
+  
+        image.onload = () => {
+          canvas.width = image.width
+          canvas.height = image.height
+  
+          ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+  
+          const imageData: ImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  
+          const channelData: Float32Array = new Float32Array(imageData.data.length / 4)
+  
+          for (let i = 0; i < imageData.data.length; i++) {
+            const index: number = i * 4
+            const value: number = imageData.data[index]
+  
+            channelData[i] = value
+          }
+  
+          normalizeDataToRange(channelData, -1, 1)
+  
+          playAudioInArray(channelData)
+        }
+      }
+    }
+    
     const handleImageUpload = (file: File) => {
       generators.generateAudioFromImage(file)
     }
@@ -139,7 +139,7 @@ const ImagePage = () => {
     if (file.type.includes("image")) handleImageUpload(file)
 
     else if (file.type.includes("audio")) handleAudioUpload(file)
-  }, [generators])
+  }, [])
 
   return (
     <div>
