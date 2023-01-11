@@ -147,7 +147,14 @@ const ImagePage = () => {
 
   return (
     <div>
-      <h1>Image</h1>
+      <h1 className="mb-8">Audio-Image Transducer</h1>
+
+      <ul className="list-disc mb-8">
+        <li>Upload an image or audio file</li>
+        <li>If you upload an image, you will hear that image as audio</li>
+        <li>If you upload audio, you will receive that audio as an image</li>
+        <li>Download your audio files and edit them, and then upload them! See what changes!</li>
+      </ul>
 
       <input
         type="file"
