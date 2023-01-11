@@ -3,7 +3,7 @@ import { useCallback, useRef } from "react"
 const ImagePage = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  function normalizeDataToRange(array: Float32Array, a: number, b: number): void {
+  const normalizeDataToRange = useCallback((array: Float32Array, a: number, b: number): void => {
     let min: number = 0
     let max: number = 0
     for (let i = 0; i < array.length; i++) {
@@ -15,9 +15,9 @@ const ImagePage = () => {
     for (let i = 0; i < array.length; i++) {
       array[i] = a + (lowerMinusHigher * (array[i] - min)) / (max - min)
     }
-  }
+  }, [])
 
-  function downloadCanvasImage(): void {
+  const downloadCanvasImage = useCallback((): void => {
     if (!canvasRef.current) return
     const canvas = canvasRef.current
 
@@ -25,9 +25,9 @@ const ImagePage = () => {
     link.download = 'filename.tiff';
     link.href = canvas.toDataURL()
     link.click();
-  }
+  }, [canvasRef])
 
-  function playAudioInArray(array: Float32Array): void {
+  const playAudioInArray = useCallback((array: Float32Array): void => {
     const audioContext: AudioContext = new AudioContext()
 
     const audioBuffer: AudioBuffer = audioContext.createBuffer(1, array.length, audioContext.sampleRate)
@@ -47,7 +47,7 @@ const ImagePage = () => {
     gainNode.connect(audioContext.destination)
 
     audioBufferSourceNode.start()
-  }
+  }, [])
 
   const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
     const generators = {
