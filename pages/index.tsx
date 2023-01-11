@@ -17,15 +17,12 @@ const ImagePage = () => {
     }
   }, [])
 
-  const downloadCanvasImage = useCallback((): void => {
-    if (!canvasRef.current) return
-    const canvas = canvasRef.current
-
+  const downloadObject = useCallback((url: string, filetype: string): void => {
     var link = document.createElement('a');
-    link.download = 'filename.tiff';
-    link.href = canvas.toDataURL()
+    link.download = 'filename.' + filetype;
+    link.href = url
     link.click();
-  }, [canvasRef])
+  }, [])
 
   const playAudioInArray = useCallback((array: Float32Array): void => {
     const audioContext: AudioContext = new AudioContext()
@@ -65,22 +62,45 @@ const ImagePage = () => {
         const canvasHeight: number = canvas.height
   
         const imageData: ImageData = ctx.createImageData(canvasWidth, canvasHeight)
-  
-        normalizeDataToRange(channelData, 0, 255)
-  
-        for (let i = 0; i < imageData.data.length; i++) {
-          const value: number = channelData[i]
-          const index: number = i * 4
-  
-          imageData.data[index] = value
-          imageData.data[index + 1] = value
-          imageData.data[index + 2] = value
-          imageData.data[index + 3] = 255
+
+        const numberOfNumeralGroupsNotFirst: number = 2
+        const extractedNumeralsFirst: Float32Array = new Float32Array(channelData.length)
+        const extractedNumeralsNotFirst: Float32Array = new Float32Array(channelData.length * numberOfNumeralGroupsNotFirst)
+
+        for (let i = 0; i < channelData.length; i++) {
+          const channelDataValue: number = channelData[i] * 255
+          const valueMul100AsString: string = channelDataValue.toString()
+          const splitDataValueByDecimal: string[] = valueMul100AsString.split(".")
+
+          const firstThreeNumerals: number = parseInt(splitDataValueByDecimal[0])
+          const nextThreeNumerals: number = parseInt(splitDataValueByDecimal[1].slice(0, 3))
+          const lastThreeNumerals: number = parseInt(splitDataValueByDecimal[1].slice(3, 6))
+
+          extractedNumeralsFirst[i] = firstThreeNumerals
+          extractedNumeralsNotFirst[i] = nextThreeNumerals
+          extractedNumeralsNotFirst[i + 1] = lastThreeNumerals
+        }
+
+        normalizeDataToRange(extractedNumeralsNotFirst, 0, 255)
+
+        for (let i = 0; i < extractedNumeralsFirst.length; i++) {
+          const imageDataIndex: number = i * 4
+          const notFirstIndex: number = i * 2
+
+          const firstThreeNumerals: number = extractedNumeralsFirst[i]
+          const nextThreeNumerals: number = extractedNumeralsNotFirst[notFirstIndex]
+          const lastThreeNumerals: number = extractedNumeralsNotFirst[notFirstIndex + 1]
+
+          imageData.data[imageDataIndex] = firstThreeNumerals
+          imageData.data[imageDataIndex + 1] = nextThreeNumerals
+          imageData.data[imageDataIndex + 2] = lastThreeNumerals
+          imageData.data[imageDataIndex + 3] = 255
         }
   
         ctx.putImageData(imageData, 0, 0)
   
-        downloadCanvasImage()
+        const imageDataUrl: string = canvas.toDataURL()
+        downloadObject(imageDataUrl, "png")
       },
   
       generateAudioFromImage(file: File): void {
@@ -101,18 +121,43 @@ const ImagePage = () => {
   
           const imageData: ImageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
   
-          const channelData: Float32Array = new Float32Array(imageData.data.length / 4)
-  
-          for (let i = 0; i < imageData.data.length; i++) {
-            const index: number = i * 4
-            const value: number = imageData.data[index]
-  
-            channelData[i] = value
+          const rgbaLength: number = 4
+          const channelData: Float32Array = new Float32Array(imageData.data.length / rgbaLength)
+
+          const numberOfNumeralGroupsNotFirst: number = 2
+          const extractedNumeralsFirst: Float32Array = new Float32Array(channelData.length)
+          const extractedNumeralsNotFirst: Float32Array = new Float32Array(channelData.length * numberOfNumeralGroupsNotFirst)
+
+          for (let i = 0; i < channelData.length; i++) {
+            const indexForImageData: number = i * 4
+            const indexForNotFirst: number = i * 2
+
+            const firstThreeNumerals: number = imageData.data[indexForImageData]
+            const nextThreeNumerals: number = imageData.data[indexForImageData + 1]
+            const lastThreeNumerals: number = imageData.data[indexForImageData + 2]
+
+            extractedNumeralsFirst[i] = firstThreeNumerals
+            extractedNumeralsNotFirst[indexForNotFirst] = nextThreeNumerals
+            extractedNumeralsNotFirst[indexForNotFirst + 1] = lastThreeNumerals
+          }
+
+          normalizeDataToRange(extractedNumeralsNotFirst, 0, 999)
+
+          for (let i = 0; i < extractedNumeralsFirst.length; i++) {
+            const indexForNotFirst: number = i * 2
+
+            const firstThreeNumerals: number = extractedNumeralsFirst[i]
+            const nextThreeNumerals: number = extractedNumeralsNotFirst[indexForNotFirst]
+            const lastThreeNumerals: number = extractedNumeralsNotFirst[indexForNotFirst + 1]
+
+            const combinedNumeralsAsString: string = `${firstThreeNumerals}.${nextThreeNumerals}${lastThreeNumerals}`
+
+            const combinedNumeralsAsFloat: number = parseFloat(combinedNumeralsAsString)
+
+            channelData[i] = combinedNumeralsAsFloat / 255
           }
   
-          normalizeDataToRange(channelData, -1, 1)
-  
-          playAudioInArray(channelData)
+          playAudioInArray(channelData) 
         }
       }
     }
@@ -139,7 +184,7 @@ const ImagePage = () => {
     if (file.type.includes("image")) handleImageUpload(file)
 
     else if (file.type.includes("audio")) handleAudioUpload(file)
-  }, [])
+  }, [normalizeDataToRange, playAudioInArray, downloadObject])
 
   return (
     <div>
