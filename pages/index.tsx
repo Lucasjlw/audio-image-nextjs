@@ -3,7 +3,7 @@ import { useCallback, useRef } from "react"
 const ImagePage = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const generators: Object = {
+  const generators = {
     generateImageFromAudioBuffer(decodedAudioBuffer: AudioBuffer): void {
       if (!canvasRef.current) return
 
@@ -63,11 +63,7 @@ const ImagePage = () => {
           channelData[i] = value
         }
 
-        console.log(channelData)
-
         normalizeDataToRange(channelData, -1, 1)
-
-        console.log(channelData)
 
         playAudioInArray(channelData)
       }
@@ -143,7 +139,7 @@ const ImagePage = () => {
     if (file.type.includes("image")) handleImageUpload(file)
 
     else if (file.type.includes("audio")) handleAudioUpload(file)
-  }, [])
+  }, [generators])
 
   return (
     <div>
